@@ -181,6 +181,10 @@ function discoverNewLabels(gmailLabels) {
   const newRowStart = lastRow - newLabels.length + 1;
   sheet.getRange(newRowStart, 1, newLabels.length, headers.length).setBackground('#e8f5e9');
 
+  // Refresh Label Rules dropdown so new labels appear immediately
+  const rulesSheet = ss.getSheetByName(CONFIG.labelRulesSheetName);
+  if (rulesSheet) _formatLabelRulesSheet(rulesSheet);
+
   Logger.log(`✅ Discovered ${newLabels.length} new labels`);
   return newLabels;
 }
