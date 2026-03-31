@@ -59,8 +59,14 @@ function _formatLabelConfigSheet(sheet) {
     if (widths[h]) sheet.setColumnWidth(i + 1, widths[h]);
   });
 
+  // Ensure checkbox columns have checkboxes on all data rows
   const lastRow = sheet.getLastRow();
   if (lastRow >= 2) {
+    ['capture_to_queue', 'send_to_n8n', 'active', 'mark_read', 'archive'].forEach(name => {
+      const c = col(name);
+      if (c > 0) sheet.getRange(2, c, lastRow - 1, 1).insertCheckboxes();
+    });
+
     ['last_synced'].forEach(name => {
       const c = col(name);
       if (c > 0) sheet.getRange(2, c, lastRow - 1, 1).setNumberFormat('yyyy-MM-dd HH:mm:ss');
@@ -178,9 +184,16 @@ function _formatLabelRulesSheet(sheet) {
     if (widths[h]) sheet.setColumnWidth(i + 1, widths[h]);
   });
 
+  // Ensure checkbox columns have checkboxes on all data rows
   const maxRows = sheet.getMaxRows();
-  const dataRange = sheet.getRange(2, 1, maxRows - 1, lastCol);
   const col = name => headers.indexOf(name) + 1;
+
+  ['active', 'stop_on_match', 'unread_only'].forEach(name => {
+    const c = col(name);
+    if (c > 0) sheet.getRange(2, c, maxRows - 1, 1).insertCheckboxes();
+  });
+
+  const dataRange = sheet.getRange(2, 1, maxRows - 1, lastCol);
   const rules = [];
 
   const activeCol = col('active');
