@@ -103,6 +103,28 @@ function _formatLabelConfigSheet(sheet) {
   const dataRange = sheet.getRange(2, 1, maxRows - 1, lastCol);
   const rules = [];
 
+  // ⚠️ DELETED — grey out entire row (must be first so it takes priority)
+  const labelNameCol = col('label_name_current');
+  if (labelNameCol > 0) {
+    rules.push(SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(`=ISNUMBER(SEARCH("DELETED",$${_colLetter(labelNameCol)}2))`)
+      .setBackground('#f3f3f3')
+      .setFontColor('#aaaaaa')
+      .setRanges([dataRange])
+      .build());
+  }
+
+  // has_rules = TRUE — light blue row
+  const hasRulesCol = col('has_rules');
+  if (hasRulesCol > 0) {
+    rules.push(SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(`=$${_colLetter(hasRulesCol)}2=TRUE`)
+      .setBackground('#e1f0fa')
+      .setRanges([dataRange])
+      .build());
+  }
+
+  // email_count = 0 — light red row
   const emailCountCol = col('email_count');
   if (emailCountCol > 0) {
     rules.push(SpreadsheetApp.newConditionalFormatRule()
@@ -112,6 +134,7 @@ function _formatLabelConfigSheet(sheet) {
       .build());
   }
 
+  // empty route_key — light yellow row
   const routeKeyCol = col('route_key');
   if (routeKeyCol > 0) {
     rules.push(SpreadsheetApp.newConditionalFormatRule()
