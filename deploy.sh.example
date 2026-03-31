@@ -38,7 +38,7 @@ for id in "${SCRIPT_IDS[@]}"; do
   [[ "$id" =~ ^#.*$ || -z "$id" ]] && continue
 
   echo "→ Pushing to: ${id:0:20}..."
-  jq --arg id "$id" '.scriptId = $id' "$TEMPLATE" > "$CLASP_FILE"
+  sed "s/YOUR_SCRIPT_ID_HERE/$id/" "$TEMPLATE" > "$CLASP_FILE"
 
   if clasp push --force 2>&1 | tail -1; then
     ((SUCCESS++))
@@ -52,5 +52,5 @@ done
 echo "✅ Done: $SUCCESS succeeded, $FAIL failed"
 
 if [ ${#SCRIPT_IDS[@]} -gt 1 ]; then
-  jq --arg id "${SCRIPT_IDS[0]}" '.scriptId = $id' "$TEMPLATE" > "$CLASP_FILE"
+  sed "s/YOUR_SCRIPT_ID_HERE/${SCRIPT_IDS[0]}/" "$TEMPLATE" > "$CLASP_FILE"
 fi

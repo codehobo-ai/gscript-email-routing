@@ -33,6 +33,7 @@ function onOpen() {
       .addItem('Test Webhook', 'testWebhook'))
     .addItem('⏱️ View Active Triggers', 'viewTriggers')
     .addItem('🎨 Format Tables', 'formatTablesUI')
+    .addItem('🔄 Apply Update', 'applyUpdateUI')
     .addToUi();
 
   // Check for updates (non-blocking toast)
@@ -279,6 +280,104 @@ function resumeWizard() {
   if (response === ui.Button.YES) {
     postSetupWizard();
   }
+}
+
+// --- APPLY UPDATE ---
+
+/**
+ * Safe to run on existing sheets after a code push.
+ * Adds missing sheets, syncs headers, applies formatting, refreshes triggers.
+ * Never removes or overwrites existing data.
+ */
+function applyUpdate() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const actions = [];
+
+  // 1. Ensure Queue sheet exists and headers are current
+  if (!ss.getSheetByName(CONFIG.queueSheetName)) {
+    ensureQueueSheet();
+    actions.push('Created Queue sheet');
+  } else {
+    const missing = syncQueueHeaders();
+    if (missing.length > 0) actions.push('Added queue columns: ' + missing.join(', '));
+  }
+
+  // 2. Ensure Label Rules sheet exists
+  if (!ss.getSheetByName(CONFIG.labelRulesSheetName)) {
+    ensureAutoLabelRulesSheet();
+    actions.push('Created Label Rules sheet');
+  }
+
+  // 3. Add missing Label Config columns (mark_read, archive, etc.)
+  const labelSheet = ss.getSheetByName(CONFIG.labelConfigSheetName);
+  if (labelSheet) {
+    const lcHeaders = labelSheet.getRange(1, 1, 1, labelSheet.getLastColumn()).getValues()[0];
+    const expectedLabelCols = [
+      'label_id', 'label_name_current', 'route_key', 'drive_folder_id',
+      'capture_to_queue', 'send_to_n8n', 'active', 'mark_read', 'archive',
+      'email_count', 'prev_email_count', 'last_synced', 'notes'
+    ];
+    const missingLabelCols = expectedLabelCols.filter(h => !lcHeaders.includes(h));
+    if (missingLabelCols.length > 0) {
+      const lastRow = labelSheet.getLastRow();
+      missingLabelCols.forEach(header => {
+        const newCol = labelSheet.getLastColumn() + 1;
+        labelSheet.getRange(1, newCol)
+          .setValue(header)
+          .setFontWeight('bold')
+          .setBackground('#4285f4')
+          .setFontColor('#ffffff');
+
+        // Set defaults for checkbox columns
+        if (['mark_read'].includes(header) && lastRow > 1) {
+          labelSheet.getRange(2, newCol, lastRow - 1, 1).insertCheckboxes().setValue(true);
+        } else if (['archive'].includes(header) && lastRow > 1) {
+          labelSheet.getRange(2, newCol, lastRow - 1, 1).insertCheckboxes().setValue(false);
+        }
+      });
+      actions.push('Added label config columns: ' + missingLabelCols.join(', '));
+    }
+  }
+
+  // 4. Refresh triggers (in case trigger functions were renamed/added)
+  const triggers = ScriptApp.getProjectTriggers();
+  const handlerNames = triggers.map(t => t.getHandlerFunction());
+  if (triggers.length > 0 && !handlerNames.includes('runEmailProcessing')) {
+    setupTriggers();
+    actions.push('Refreshed triggers (updated handler functions)');
+  }
+
+  // 5. Apply formatting
+  formatTables();
+  actions.push('Applied table formatting');
+
+  return actions;
+}
+
+function applyUpdateUI() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    'Apply Update (v' + VERSION + ')',
+    'This will:\n' +
+    '• Add any missing sheets (Label Rules, Queue)\n' +
+    '• Add missing columns to existing sheets\n' +
+    '• Refresh triggers if handler names changed\n' +
+    '• Apply formatting\n\n' +
+    'Your existing data is never modified or deleted.\n\n' +
+    'Continue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (response !== ui.Button.YES) return;
+
+  const actions = applyUpdate();
+
+  ui.alert(
+    'Update Applied (v' + VERSION + ')',
+    actions.length > 0
+      ? 'Changes made:\n\n• ' + actions.join('\n• ')
+      : 'Everything was already up to date.',
+    ui.ButtonSet.OK
+  );
 }
 
 /**
