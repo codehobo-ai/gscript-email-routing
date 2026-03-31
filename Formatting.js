@@ -48,6 +48,7 @@ function _formatLabelConfigSheet(sheet) {
     capture_to_queue: 90,
     send_to_n8n: 90,
     active: 70,
+    has_rules: 70,
     mark_read: 80,
     archive: 70,
     email_count: 90,
@@ -71,6 +72,31 @@ function _formatLabelConfigSheet(sheet) {
       const c = col(name);
       if (c > 0) sheet.getRange(2, c, lastRow - 1, 1).setNumberFormat('yyyy-MM-dd HH:mm:ss');
     });
+
+    // has_rules formula — checks if label_name_current appears in Label Rules label_to_apply
+    const hasRulesCol = col('has_rules');
+    const labelNameCol = col('label_name_current');
+    if (hasRulesCol > 0 && labelNameCol > 0) {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const rulesSheet = ss.getSheetByName(CONFIG.labelRulesSheetName);
+      if (rulesSheet) {
+        const rulesLastCol = rulesSheet.getLastColumn();
+        if (rulesLastCol > 0) {
+          const rulesHeaders = rulesSheet.getRange(1, 1, 1, rulesLastCol).getValues()[0];
+          const ltaCol = rulesHeaders.indexOf('label_to_apply') + 1;
+          if (ltaCol > 0) {
+            const rulesSheetName = CONFIG.labelRulesSheetName;
+            const ltaLetter = _colLetter(ltaCol);
+            const labelLetter = _colLetter(labelNameCol);
+            for (let i = 2; i <= lastRow; i++) {
+              sheet.getRange(i, hasRulesCol).setFormula(
+                `=COUNTIF('${rulesSheetName}'!${ltaLetter}:${ltaLetter},${labelLetter}${i})>0`
+              );
+            }
+          }
+        }
+      }
+    }
   }
 
   const maxRows = sheet.getMaxRows();
@@ -178,6 +204,8 @@ function _formatLabelRulesSheet(sheet) {
     label_to_apply: 180,
     stop_on_match:  90,
     unread_only:    90,
+    mark_read:      80,
+    archive:        70,
     notes:         220
   };
   headers.forEach((h, i) => {
@@ -188,7 +216,7 @@ function _formatLabelRulesSheet(sheet) {
   const maxRows = sheet.getMaxRows();
   const col = name => headers.indexOf(name) + 1;
 
-  ['active', 'stop_on_match', 'unread_only'].forEach(name => {
+  ['active', 'stop_on_match', 'unread_only', 'mark_read', 'archive'].forEach(name => {
     const c = col(name);
     if (c > 0) sheet.getRange(2, c, maxRows - 1, 1).insertCheckboxes();
   });

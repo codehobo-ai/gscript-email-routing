@@ -316,7 +316,7 @@ function applyUpdate() {
     const lcHeaders = labelSheet.getRange(1, 1, 1, labelSheet.getLastColumn()).getValues()[0];
     const expectedLabelCols = [
       'label_id', 'label_name_current', 'route_key', 'drive_folder_id',
-      'capture_to_queue', 'send_to_n8n', 'active', 'mark_read', 'archive',
+      'capture_to_queue', 'send_to_n8n', 'active', 'has_rules', 'mark_read', 'archive',
       'email_count', 'prev_email_count', 'last_synced', 'notes'
     ];
     const missingLabelCols = expectedLabelCols.filter(h => !lcHeaders.includes(h));

@@ -25,6 +25,7 @@ function autoSetupLabels() {
     'capture_to_queue',
     'send_to_n8n',
     'active',
+    'has_rules',
     'mark_read',
     'archive',
     'email_count',
@@ -49,21 +50,23 @@ function autoSetupLabels() {
     const labelDetail = Gmail.Users.Labels.get('me', label.id);
     const emailCount = labelDetail.messagesTotal || 0;
 
-    sheet.appendRow([
-      label.id,
-      label.name,
-      '',           // route_key — user fills in
-      '',           // drive_folder_id
-      true,         // capture_to_queue
-      false,        // send_to_n8n
-      false,        // active
-      true,         // mark_read
-      false,        // archive
-      emailCount,
-      emailCount,   // prev_email_count (same on first setup)
-      new Date(),
-      'Auto-imported'
-    ]);
+    const valueMap = {
+      label_id: label.id,
+      label_name_current: label.name,
+      route_key: '',
+      drive_folder_id: '',
+      capture_to_queue: true,
+      send_to_n8n: false,
+      active: false,
+      mark_read: true,
+      archive: false,
+      email_count: emailCount,
+      prev_email_count: emailCount,
+      last_synced: new Date(),
+      notes: 'Auto-imported'
+    };
+
+    sheet.appendRow(headers.map(h => valueMap.hasOwnProperty(h) ? valueMap[h] : ''));
 
     Logger.log(`Added: ${label.name} (${emailCount} emails)`);
   });
@@ -154,25 +157,29 @@ function discoverNewLabels(gmailLabels) {
     return [];
   }
 
+  const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
   newLabels.forEach(label => {
     const labelDetail = Gmail.Users.Labels.get('me', label.id);
     const emailCount = labelDetail.messagesTotal || 0;
 
-    sheet.appendRow([
-      label.id,
-      label.name,
-      '',           // route_key
-      '',           // drive_folder_id
-      true,         // capture_to_queue
-      false,        // send_to_n8n
-      false,        // active
-      true,         // mark_read
-      false,        // archive
-      emailCount,
-      emailCount,
-      new Date(),
-      '🆕 Auto-discovered'
-    ]);
+    const valueMap = {
+      label_id: label.id,
+      label_name_current: label.name,
+      route_key: '',
+      drive_folder_id: '',
+      capture_to_queue: true,
+      send_to_n8n: false,
+      active: false,
+      mark_read: true,
+      archive: false,
+      email_count: emailCount,
+      prev_email_count: emailCount,
+      last_synced: new Date(),
+      notes: '🆕 Auto-discovered'
+    };
+
+    sheet.appendRow(currentHeaders.map(h => valueMap.hasOwnProperty(h) ? valueMap[h] : ''));
 
     Logger.log(`➕ Added: ${label.name} (${emailCount} emails)`);
   });

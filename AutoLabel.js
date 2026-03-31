@@ -38,6 +38,8 @@ function autoLabelEmails() {
       if (existingLabels.has(rule.labelToApply)) return;
 
       thread.addLabel(label);
+      if (rule.markRead) thread.getMessages().forEach(m => m.markRead());
+      if (rule.archive) thread.moveToArchive();
       labeled++;
 
       if (rule.stopOnMatch) stoppedThreads.add(thread.getId());
@@ -148,7 +150,9 @@ function _getActiveRules() {
       query:        String(row[col('query')] || '').trim(),
       labelToApply: String(row[col('label_to_apply')] || '').trim(),
       stopOnMatch:  row[col('stop_on_match')] === true || row[col('stop_on_match')] === 'TRUE',
-      unreadOnly:   row[col('unread_only')] === true || row[col('unread_only')] === 'TRUE'
+      unreadOnly:   row[col('unread_only')] === true || row[col('unread_only')] === 'TRUE',
+      markRead:     row[col('mark_read')] === true || row[col('mark_read')] === 'TRUE',
+      archive:      row[col('archive')] === true || row[col('archive')] === 'TRUE'
     }))
     .filter(r => r.ruleName && r.query && r.labelToApply && r.active)
     .sort((a, b) => a.priority - b.priority);
@@ -192,6 +196,8 @@ function _runBackfill(rules) {
         if (existingLabels.has(rule.labelToApply)) return;
 
         thread.addLabel(label);
+        if (rule.markRead) thread.getMessages().forEach(m => m.markRead());
+        if (rule.archive) thread.moveToArchive();
         total++;
 
         if (rule.stopOnMatch) stoppedThreads.add(thread.getId());
@@ -223,7 +229,7 @@ function ensureAutoLabelRulesSheet() {
 
   const headers = [
     'rule_name', 'active', 'priority', 'query',
-    'label_to_apply', 'stop_on_match', 'unread_only', 'notes'
+    'label_to_apply', 'stop_on_match', 'unread_only', 'mark_read', 'archive', 'notes'
   ];
 
   sheet.appendRow(headers);
@@ -235,7 +241,7 @@ function ensureAutoLabelRulesSheet() {
 
   // Checkbox columns
   const lastDataRow = Math.max(sheet.getMaxRows(), 100);
-  ['active', 'stop_on_match', 'unread_only'].forEach(name => {
+  ['active', 'stop_on_match', 'unread_only', 'mark_read', 'archive'].forEach(name => {
     const c = headers.indexOf(name) + 1;
     if (c > 0) {
       sheet.getRange(2, c, lastDataRow - 1, 1)
