@@ -1,0 +1,56 @@
+#!/bin/bash
+# Deploy to all configured Google Apps Script instances
+#
+# Usage:
+#   cp deploy.sh.example deploy.sh
+#   # Edit deploy.sh — add your script IDs
+#   ./deploy.sh              # push to all script IDs
+#   ./deploy.sh <scriptId>   # push to one specific script ID
+#
+# Find script IDs in each sheet: Extensions → Apps Script → Project Settings → Script ID
+
+SCRIPT_IDS=(
+  # Add your script IDs here (one per line):
+  # "your_script_id_here"  # description
+)
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+CLASP_FILE="$DIR/.clasp.json"
+TEMPLATE="$DIR/.clasp.json.example"
+
+if [ ${#SCRIPT_IDS[@]} -eq 0 ]; then
+  echo "No script IDs configured. Edit deploy.sh and add your IDs."
+  exit 1
+fi
+
+# If a specific script ID was passed, only deploy to that one
+if [ -n "$1" ]; then
+  SCRIPT_IDS=("$1")
+fi
+
+echo "📦 Deploying Gmail Email Router v$(grep -oP '"version":\s*"\K[^"]+' "$DIR/version.json")"
+echo ""
+
+SUCCESS=0
+FAIL=0
+
+for id in "${SCRIPT_IDS[@]}"; do
+  [[ "$id" =~ ^#.*$ || -z "$id" ]] && continue
+
+  echo "→ Pushing to: ${id:0:20}..."
+  jq --arg id "$id" '.scriptId = $id' "$TEMPLATE" > "$CLASP_FILE"
+
+  if clasp push --force 2>&1 | tail -1; then
+    ((SUCCESS++))
+  else
+    echo "  ❌ Failed"
+    ((FAIL++))
+  fi
+  echo ""
+done
+
+echo "✅ Done: $SUCCESS succeeded, $FAIL failed"
+
+if [ ${#SCRIPT_IDS[@]} -gt 1 ]; then
+  jq --arg id "${SCRIPT_IDS[0]}" '.scriptId = $id' "$TEMPLATE" > "$CLASP_FILE"
+fi

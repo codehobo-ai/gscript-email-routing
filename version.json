@@ -1,0 +1,6 @@
+{
+  "version": "4.0.0",
+  "changelog": "Merged v1 + v3: History API, auto-labeling, setup wizard, webhook auth, per-label controls",
+  "changedFiles": [],
+  "url": "https://github.com/codehobo-ai/gscript-email-routing"
+}
