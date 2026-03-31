@@ -3,6 +3,53 @@
 // n8n webhook functions
 // ========================================
 
+function viewWebhookSettings() {
+  const ui = SpreadsheetApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const url = props.getProperty('n8n_webhook_url');
+  const authHeader = props.getProperty('n8n_webhook_auth_header');
+  const authValue = props.getProperty('n8n_webhook_auth_value');
+
+  if (!url) {
+    ui.alert('No Webhook Configured', 'No webhook URL is set.\n\nUse Gmail Tools → Webhook → Configure to set one up.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const lines = [`URL: ${url}`];
+  if (authHeader && authValue) {
+    lines.push(`Auth header: ${authHeader}`);
+    lines.push(`Auth value: ${'*'.repeat(Math.min(authValue.length, 12))}`);
+  } else {
+    lines.push('Auth: none');
+  }
+
+  const response = ui.alert(
+    'Webhook Settings',
+    lines.join('\n') + '\n\nWould you like to change these settings?',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (response === ui.Button.YES) {
+    configureN8nWebhook();
+  }
+}
+
+function clearWebhookSettings() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    'Clear Webhook Settings',
+    'This will remove the webhook URL and auth credentials.\n\nEmails will still be logged to the Queue sheet but no webhooks will be sent.\n\nContinue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (response !== ui.Button.YES) return;
+
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty('n8n_webhook_url');
+  props.deleteProperty('n8n_webhook_auth_header');
+  props.deleteProperty('n8n_webhook_auth_value');
+  ui.alert('Webhook settings cleared.', '', ui.ButtonSet.OK);
+}
+
 function configureN8nWebhook() {
   const ui = SpreadsheetApp.getUi();
   const props = PropertiesService.getScriptProperties();
