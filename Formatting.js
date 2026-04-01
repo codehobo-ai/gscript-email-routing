@@ -99,12 +99,16 @@ function _formatLabelConfigSheet(sheet) {
     }
   }
 
+  // Re-read in case columns were added during this run (e.g. has_rules by applyUpdate)
+  const currentLastCol = sheet.getLastColumn();
+  const currentHeaders = sheet.getRange(1, 1, 1, currentLastCol).getValues()[0];
+  const colCurrent = name => currentHeaders.indexOf(name) + 1;
   const maxRows = sheet.getMaxRows();
-  const dataRange = sheet.getRange(2, 1, maxRows - 1, lastCol);
+  const dataRange = sheet.getRange(2, 1, maxRows - 1, currentLastCol);
   const rules = [];
 
   // ⚠️ DELETED — grey out entire row (must be first so it takes priority)
-  const labelNameCol = col('label_name_current');
+  const labelNameCol = colCurrent('label_name_current');
   if (labelNameCol > 0) {
     rules.push(SpreadsheetApp.newConditionalFormatRule()
       .whenFormulaSatisfied(`=ISNUMBER(SEARCH("DELETED",$${_colLetter(labelNameCol)}2))`)
@@ -115,7 +119,7 @@ function _formatLabelConfigSheet(sheet) {
   }
 
   // has_rules = TRUE — light blue row
-  const hasRulesCol = col('has_rules');
+  const hasRulesCol = colCurrent('has_rules');
   if (hasRulesCol > 0) {
     rules.push(SpreadsheetApp.newConditionalFormatRule()
       .whenFormulaSatisfied(`=$${_colLetter(hasRulesCol)}2=TRUE`)
@@ -125,7 +129,7 @@ function _formatLabelConfigSheet(sheet) {
   }
 
   // email_count = 0 — light red row
-  const emailCountCol = col('email_count');
+  const emailCountCol = colCurrent('email_count');
   if (emailCountCol > 0) {
     rules.push(SpreadsheetApp.newConditionalFormatRule()
       .whenFormulaSatisfied(`=$${_colLetter(emailCountCol)}2=0`)
@@ -135,7 +139,7 @@ function _formatLabelConfigSheet(sheet) {
   }
 
   // empty route_key — light yellow row
-  const routeKeyCol = col('route_key');
+  const routeKeyCol = colCurrent('route_key');
   if (routeKeyCol > 0) {
     rules.push(SpreadsheetApp.newConditionalFormatRule()
       .whenFormulaSatisfied(`=$${_colLetter(routeKeyCol)}2=""`)
@@ -188,8 +192,9 @@ function _formatQueueSheet(sheet) {
     });
   }
 
+  const currentLastCol = sheet.getLastColumn();
   const maxRows = sheet.getMaxRows();
-  const dataRange = sheet.getRange(2, 1, maxRows - 1, lastCol);
+  const dataRange = sheet.getRange(2, 1, maxRows - 1, currentLastCol);
   const rules = [];
 
   const statusCol = col('status');
