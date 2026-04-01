@@ -341,7 +341,30 @@ function applyUpdate() {
     }
   }
 
-  // 4. Refresh triggers (in case trigger functions were renamed/added)
+  // 4. Add missing Label Rules columns (mark_read, archive, etc.)
+  const rulesSheet = ss.getSheetByName(CONFIG.labelRulesSheetName);
+  if (rulesSheet) {
+    const rrLastCol = rulesSheet.getLastColumn();
+    const rrHeaders = rrLastCol > 0 ? rulesSheet.getRange(1, 1, 1, rrLastCol).getValues()[0] : [];
+    const expectedRuleCols = [
+      'rule_name', 'active', 'priority', 'query',
+      'label_to_apply', 'stop_on_match', 'unread_only', 'mark_read', 'archive', 'notes'
+    ];
+    const missingRuleCols = expectedRuleCols.filter(h => !rrHeaders.includes(h));
+    if (missingRuleCols.length > 0) {
+      missingRuleCols.forEach(header => {
+        const newCol = rulesSheet.getLastColumn() + 1;
+        rulesSheet.getRange(1, newCol)
+          .setValue(header)
+          .setFontWeight('bold')
+          .setBackground('#4a86e8')
+          .setFontColor('#ffffff');
+      });
+      actions.push('Added label rules columns: ' + missingRuleCols.join(', '));
+    }
+  }
+
+  // 5. Refresh triggers (in case trigger functions were renamed/added)
   const triggers = ScriptApp.getProjectTriggers();
   const handlerNames = triggers.map(t => t.getHandlerFunction());
   if (triggers.length > 0 && !handlerNames.includes('runEmailProcessing')) {
